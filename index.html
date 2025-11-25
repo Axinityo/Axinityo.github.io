@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>異界冒險 v0.9 - 寵物與速度</title>
+    <style>
+        /* --- CSS --- */
+        :root {
+            --bg-color: #0f0f0f;
+            --text-main: #e0e0e0;
+            --accent: #00e676; 
+            --gold: #ffc107;
+            --danger: #ff5252;
+            --mana: #40c4ff;
+            --stamina: #ffab00;
+            --panel-bg: #1a1a1a;
+            --border: #333;
+            --font-size: 16px;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+            font-size: var(--font-size);
+        }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #222; padding: 20px; border-radius: 8px; border: 1px solid var(--accent); width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+
+        /* Compare Window */
+        .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+        .compare-box { background: #111; padding: 10px; border: 1px solid #444; border-radius: 4px; }
+
+        /* Start Screen */
+        #start-screen, #create-screen { position: absolute; top:0; left:0; width:100%; height:100%; background: #000; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .title-text { font-size: 2em; color: var(--accent); margin-bottom: 20px; font-weight: bold; text-shadow: 0 0 10px var(--accent); }
+        .start-btn { width: 220px; margin: 8px; padding: 12px; font-size: 1.1em; }
+        .form-group { margin: 10px 0; width: 280px; }
+        label { display: block; margin-bottom: 5px; color: #888; }
+        select, input { width: 100%; padding: 10px; background: #222; color: white; border: 1px solid #444; font-size: 1em; box-sizing: border-box;}
+
+        /* Main App */
+        .app-container { max-width: 700px; margin: 0 auto; width: 100%; height: 100%; display: none; flex-direction: column; border-left: 1px solid var(--border); border-right: 1px solid var(--border); background: #111; }
+        .app-container.active { display: flex; }
+
+        .navbar { display: flex; background: var(--panel-bg); border-bottom: 1px solid var(--border); }
+        .nav-btn { flex: 1; padding: 12px; background: transparent; color: #888; border: none; cursor: pointer; border-bottom: 3px solid transparent; font-weight: bold; font-size: 1em; }
+        .nav-btn.active { color: var(--text-main); border-bottom-color: var(--accent); }
+
+        .content-area { flex: 1; overflow-y: auto; padding: 10px; display: none; }
+        .content-area.active { display: flex; flex-direction: column; }
+
+        /* HUD */
+        .hud-panel { background: #222; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 0.9em; }
+        .bar-container { display: flex; align-items: center; margin-bottom: 4px; }
+        .bar-label { width: 40px; font-weight: bold; }
+        .bar-bg { flex: 1; height: 10px; background: #333; border-radius: 5px; overflow: hidden; position: relative;}
+        .bar-fill { height: 100%; transition: width 0.3s; }
+        .bar-text-overlay { position: absolute; width: 100%; text-align: center; font-size: 0.75em; color: white; text-shadow: 1px 1px 2px black; line-height: 10px; }
+        .hp-fill { background: var(--danger); } .mp-fill { background: var(--mana); }
+        .sp-fill { background: var(--stamina); } .exp-fill { background: #9c27b0; }
+
+        #game-log { flex: 1; overflow-y: auto; border: 1px solid #222; background: #000; padding: 10px; font-size: 0.9em; margin-bottom: 10px; font-family: monospace; }
+        .log-entry { margin-bottom: 5px; padding-left: 5px; border-left: 3px solid #222; line-height: 1.4; }
+
+        button { background: #333; color: white; border: 1px solid #444; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        button.primary { background: var(--accent); color: black; font-weight: bold; }
+        button.small { padding: 4px 8px; font-size: 0.8em; }
+        button.active-btn { background: var(--gold); color: black; border-color: var(--gold); font-weight: bold; }
+
+        .equip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+        .equip-slot { background: #222; padding: 10px; border: 1px solid #333; font-size: 0.9em; cursor: pointer; display: flex; flex-direction: column; }
+        .equip-slot span { color: #888; font-size: 0.8em; margin-bottom: 2px; }
+        .item-row { display: flex; justify-content: space-between; background: #1e1e1e; padding: 8px; margin-bottom: 5px; align-items: center; border: 1px solid #333; border-radius: 4px; }
+
+        .q0 { color: #9e9e9e; } .q1 { color: #ffffff; } .q2 { color: #4caf50; } 
+        .q3 { color: #03a9f4; } .q4 { color: #9c27b0; } .q5 { color: #ff9800; } 
+        .q6 { color: #ff5252; } .q7 { color: #ffd700; text-shadow: 0 0 5px #ffd700; } 
+
+        .font-controls { position: absolute; top: 10px; right: 10px; z-index: 300; display: flex; gap: 5px; }
+        .font-btn { background: rgba(0,0,0,0.5); border: 1px solid #555; color: white; width: 30px; height: 30px; border-radius: 50%; display:flex; justify-content:center; align-items:center; font-weight:bold; cursor:pointer;}
+        
+        .c-gold { color: var(--gold); } .c-danger { color: var(--danger); }
+        .c-mana { color: var(--mana); } .c-sys { color: #aaa; font-style: italic; } .c-god { color: #e040fb; }
+    </style>
+</head>
+<body>
+
+<div class="font-controls">
+    <div class="font-btn" onclick="UI.setFont(14)">S</div>
+    <div class="font-btn" onclick="UI.setFont(16)">M</div>
+    <div class="font-btn" onclick="UI.setFont(20)">L</div>
+</div>
+
+<div id="modal-news" class="modal active">
+    <div class="modal-content">
+        <h2 style="color:var(--accent); text-align:center;">版本更新 v0.9</h2>
+        <ul style="font-size:0.9em; line-height:1.6;">
+            <li><strong>特色怪物：</strong>各地區新增專屬怪物 (如：紅色史萊姆、寶箱怪)。</li>
+            <li><strong>寵物系統：</strong>迷霧森林後有機率掉落寵物。新增「寵物裝備背包」。需裝備寵物才能使用寵物飾品。</li>
+            <li><strong>戰鬥速度：</strong>新增「慢 / 標準 / 快」速度選項。</li>
+            <li><strong>背包優化：</strong>上限提升至 200，新增「自動排序」。</li>
+            <li><strong>平衡調整：</strong>金幣獲取大幅下調。屬性介面顯示裝備加成。</li>
+        </ul>
+        <button class="primary" onclick="document.getElementById('modal-news').classList.remove('active')">開始遊戲</button>
+    </div>
+</div>
+
+<div id="modal-compare" class="modal">
+    <div class="modal-content">
+        <h3>更換裝備</h3>
+        <div class="compare-grid">
+            <div class="compare-box" id="cmp-current">
+                <div style="color:#888;">目前裝備</div>
+                <div id="cmp-cur-content">無</div>
+            </div>
+            <div class="compare-box" id="cmp-new">
+                <div style="color:var(--accent);">新裝備</div>
+                <div id="cmp-new-content"></div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="primary" style="flex:1" id="btn-confirm-equip">穿戴</button>
+            <button style="flex:1" onclick="document.getElementById('modal-compare').classList.remove('active')">取消</button>
+        </div>
+    </div>
+</div>
+
+<div id="start-screen">
+    <div class="title-text">異界冒險 v0.9</div>
+    <button class="start-btn primary" onclick="Title.newGame()">新遊戲</button>
+    <button class="start-btn" onclick="Title.continueGame()">繼續旅程</button>
+    <button class="start-btn" onclick="document.getElementById('file-input').click()">讀取檔案</button>
+    <input type="file" id="file-input" accept=".json" style="display:none" onchange="Title.importSave(this)">
+</div>
+
+<div id="create-screen">
+    <h2 style="color:var(--accent)">創建角色</h2>
+    <div class="form-group">
+        <label>名字 (自訂)</label>
+        <input type="text" id="c-name" value="冒險者" placeholder="請輸入名字">
+    </div>
+    <div class="form-group">
+        <label>種族</label>
+        <select id="c-race">
+            <option value="human">人類 (均衡, 智+2 力+2 運+1)</option>
+            <option value="elf">精靈 (靈巧, 智+4 敏+2 體-1)</option>
+            <option value="orc">獸人 (強壯, 力+5 體+2 智-2)</option>
+            <option value="goblin">哥布林 (貪婪, 運+5 力-2 體-2)</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>年齡</label>
+        <select id="c-age">
+            <option value="young">少年 (敏+3 力-1)</option>
+            <option value="adult">成年 (力+2 體+2)</option>
+            <option value="elder">老年 (智+5 體-3 運+2)</option>
+        </select>
+    </div>
+    <button class="primary" style="width:280px; margin-top:20px;" onclick="Title.finalizeCreate()">開始冒險</button>
+    <button style="width:280px; margin-top:10px;" onclick="location.reload()">返回</button>
+</div>
+
+<div id="game-app" class="app-container">
+    <nav class="navbar">
+        <button class="nav-btn active" onclick="UI.switchTab('tab-adv')">冒險</button>
+        <button class="nav-btn" onclick="UI.switchTab('tab-char')">角色</button>
+        <button class="nav-btn" onclick="UI.switchTab('tab-bag')">背包</button>
+        <button class="nav-btn" onclick="UI.switchTab('tab-sys')">系統</button>
+    </nav>
+
+    <div id="tab-adv" class="content-area active">
+        <div class="hud-panel">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <span><strong id="hud-name">玩家</strong> <span id="hud-race" style="font-size:0.8em; color:#aaa;"></span> Lv.<span id="hud-lv">1</span></span>
+                <span class="c-gold">💰 <span id="hud-gold">0</span></span>
+            </div>
+            <div class="bar-container"><span class="bar-label" style="color:var(--danger)">HP</span><div class="bar-bg"><div id="bar-hp" class="bar-fill hp-fill" style="width:100%"></div><div id="txt-hp" class="bar-text-overlay"></div></div></div>
+            <div class="bar-container"><span class="bar-label" style="color:var(--mana)">MP</span><div class="bar-bg"><div id="bar-mp" class="bar-fill mp-fill" style="width:100%"></div><div id="txt-mp" class="bar-text-overlay"></div></div></div>
+            <div class="bar-container"><span class="bar-label" style="color:var(--stamina)">SP</span><div class="bar-bg"><div id="bar-sp" class="bar-fill sp-fill" style="width:100%"></div><div id="txt-sp" class="bar-text-overlay"></div></div></div>
+            <div class="bar-container"><span class="bar-label" style="color:#9c27b0">EXP</span><div class="bar-bg"><div id="bar-exp" class="bar-fill exp-fill" style="width:0%"></div><div id="txt-exp" class="bar-text-overlay"></div></div></div>
+        </div>
+
+        <div id="promo-area" style="display:none; background:#2e1a1a; padding:10px; margin-bottom:10px; border:1px solid var(--danger); text-align:center;">
+            <strong style="color:var(--danger)">★ 轉職機會 ★</strong> <br>
+            <button class="primary small" style="margin-top:5px;" onclick="Game.promote()">進行轉職</button>
+        </div>
+
+        <div style="display:flex; gap:5px; margin-bottom:5px;">
+            <select id="zone-selector" style="padding:8px; background:#222; color:white; border:1px solid #444; flex:1;" onchange="Game.changeZone()"></select>
+            <button id="btn-pause" class="small" style="width:60px;" onclick="Game.toggleAuto()">暫停</button>
+        </div>
+        <div style="display:flex; gap:5px; justify-content:center; margin-bottom:10px;">
+            <span style="font-size:0.8em; align-self:center; color:#888;">戰鬥速度:</span>
+            <button class="small" id="spd-slow" onclick="Game.setSpeed(1500)">慢</button>
+            <button class="small" id="spd-norm" onclick="Game.setSpeed(1000)">標準</button>
+            <button class="small" id="spd-fast" onclick="Game.setSpeed(700)">快</button>
+        </div>
+        <div id="zone-info" style="font-size:0.8em; color:#888; text-align:center; margin-bottom:5px;"></div>
+        <div id="game-log"></div>
+    </div>
+
+    <div id="tab-char" class="content-area">
+        <h3>屬性 <span style="font-size:0.8em; color:#888">(基礎 + 裝備)</span></h3>
+        <div style="margin-bottom:10px;">可用點數: <span id="stat-pts" style="color:var(--accent)">0</span></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.9em;">
+            <button onclick="Game.addStat('str')">力量: <span id="val-str">0</span></button>
+            <button onclick="Game.addStat('int')">智力: <span id="val-int">0</span></button>
+            <button onclick="Game.addStat('dex')">敏捷: <span id="val-dex">0</span></button>
+            <button onclick="Game.addStat('con')">體質: <span id="val-con">0</span></button>
+            <button onclick="Game.addStat('luck')">幸運: <span id="val-luck">0</span></button>
+        </div>
+        
+        <h3>裝備</h3>
+        <div class="equip-grid" id="equip-list"></div>
+        
+        <h4>寵物夥伴</h4>
+        <div class="equip-grid" style="grid-template-columns: 1fr;">
+            <div class="equip-slot" onclick="Game.unequipPet('pet')"><span>出戰寵物</span><div id="slot-pet">無</div></div>
+        </div>
+        <h4>寵物裝備 <span style="font-size:0.7em; color:#888">(需出戰寵物)</span></h4>
+        <div class="equip-grid">
+            <div class="equip-slot" onclick="Game.unequipPet('acc1')"><span>飾品1</span><div id="slot-pet-acc1">無</div></div>
+            <div class="equip-slot" onclick="Game.unequipPet('acc2')"><span>飾品2</span><div id="slot-pet-acc2">無</div></div>
+        </div>
+    </div>
+
+    <div id="tab-bag" class="content-area">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <button class="small active-btn" id="btn-bag-main" onclick="UI.switchBagTab('main')">一般背包</button>
+            <button class="small" id="btn-bag-pet" onclick="UI.switchBagTab('pet')">寵物裝備</button>
+        </div>
+        
+        <div style="margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.9em">容量: <span id="bag-usage">0</span>/<span id="bag-max">200</span></span>
+            <div>
+                <button class="small" onclick="Bag.sort()">排序</button>
+                <button class="small" onclick="Shop.buyBag()">擴充</button>
+            </div>
+        </div>
+        
+        <div style="background:#222; padding:5px; border-radius:4px; margin-bottom:10px; font-size:0.9em; display:flex; align-items:center;">
+            <label style="margin:0 10px 0 0;">自動賣出:</label>
+            <select id="auto-sell-select" style="flex:1; padding:5px;" onchange="Game.setAutoSell(this.value)">
+                <option value="-1">關閉</option>
+                <option value="0">劣品</option>
+                <option value="1">普通以下</option>
+            </select>
+        </div>
+        <div id="inventory-list"></div>
+    </div>
+
+    <div id="tab-sys" class="content-area">
+        <h3>系統</h3>
+        <button class="primary" style="width:100%; margin-bottom:10px;" onclick="Game.saveData(); alert('已存檔')">手動存檔</button>
+        <button style="width:100%; margin-bottom:10px;" onclick="System.exportSave()">導出存檔</button>
+        <button style="width:100%; margin-bottom:10px;" onclick="document.getElementById('modal-news').classList.add('active')">查看公告</button>
+        <button style="width:100%; color:var(--danger); border-color:var(--danger)" onclick="localStorage.clear(); location.reload()">重置遊戲</button>
+    </div>
+</div>
+
+<script>
+/* --- Config & Data --- */
+const CONFIG = {
+    tickRate: 1000, // 初始標準速度
+    qualities: [
+        { name: "劣品", color: "q0", val: 0.5 }, { name: "普通", color: "q1", val: 1.0 },
+        { name: "高級", color: "q2", val: 1.5 }, { name: "精製", color: "q3", val: 2.0 },
+        { name: "工藝", color: "q4", val: 3.0 }, { name: "逸品", color: "q5", val: 5.0 },
+        { name: "傳說", color: "q6", val: 8.0 }, { name: "創世", color: "q7", val: 15.0 }
+    ],
+    zones: [
+        { name: "史萊姆庭院", req: 1, maxQ: 1, baseExp: 10, monsters: ["紅色史萊姆","藍色史萊姆","綠色史萊姆","巨大史萊姆"] },
+        { name: "試煉洞窟", req: 5, maxQ: 2, baseExp: 30, monsters: ["洞穴蝙蝠","寶箱怪","骷髏士兵","雙頭狼"] },
+        { name: "迷霧森林", req: 15, maxQ: 3, baseExp: 80, monsters: ["樹精","殺人蜂","森林巨魔","暗夜精靈"] },
+        { name: "廢棄古城", req: 30, maxQ: 4, baseExp: 250, monsters: ["幽靈騎士","古代守衛","石像鬼","巫妖"] },
+        { name: "龍脊山脈", req: 50, maxQ: 5, baseExp: 800, monsters: ["雙足飛龍","山嶺巨人","幼龍","火元素"] },
+        { name: "虛空深淵", req: 70, maxQ: 6, baseExp: 2500, canSpawnGod: true, monsters: ["虛空行者","恐懼魔王","深淵觸手"] },
+        { name: "神界之門", req: 90, maxQ: 7, baseExp: 8000, canSpawnGod: true, monsters: ["天使長","聖光守衛","神之使徒"] }
+    ],
+    bonusEffects: ["吸血 +2%", "反傷 +5%", "經驗 +5%", "金幣 +5%", "暴傷 +10%"]
+};
+const DB = { 
+    names: { 
+        weapon: ["短劍","長槍","戰斧","法杖","魔典"], armor: ["布甲","皮衣","鎧甲","戰靴","頭盔"], 
+        acc: ["戒指","項鍊","護符"], pet_acc: ["項圈","鈴鐺","爪套","絲帶"],
+        pet: ["史萊姆","幼狼","小精靈","寶箱怪","浮游石","樹精寶寶"] // 寵物品種
+    },
+    slots: { head:"頭盔", body:"身體", feet:"鞋子", weapon:"武器", acc:"飾品", pet:"出戰寵物", pet_acc:"寵物飾品" }
+};
+
+/* --- State --- */
+let Player = {
+    name: "冒險者", race: "human", age: "adult", rebirth: 0,
+    lv: 1, exp: 0, maxExp: 100, gold: 0,
+    stats: { str: 5, int: 5, dex: 5, con: 5, luck: 5 },
+    pts: 5, hp: 100,
+    curZone: 0, bagLimit: 20, petBagLimit: 20, autoSell: -1,
+    equip: { head:null, body:null, feet:null, weapon:null, acc:null, pet:null },
+    petEquip: { acc1: null, acc2: null },
+    bag: [],       // 一般物品 + 寵物(籠子)
+    petBag: []     // 寵物裝備
+};
+let isAuto = true;
+let autoTimer = null;
+let currentBagView = 'main'; // 'main' or 'pet'
+
+/* --- Logic --- */
+const Title = {
+    newGame: function() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('create-screen').style.display = 'flex';
+    },
+    continueGame: function() {
+        let d = localStorage.getItem('rpg_v9_save');
+        if(d) {
+            let data = JSON.parse(d);
+            // Patch
+            if(!data.petBag) data.petBag = [];
+            if(!data.equip.pet) data.equip.pet = null;
+            if(!data.bagLimit || data.bagLimit > 200) data.bagLimit = 20; 
+            Player = {...Player, ...data};
+            this.enterGame();
+        } else alert("無存檔！");
+    },
+    importSave: function(input) {
+        const file = input.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try { Player = JSON.parse(e.target.result); Title.enterGame(); } catch(err){alert("格式錯誤");}
+        };
+        reader.readAsText(file);
+    },
+    finalizeCreate: function() {
+        let n = document.getElementById('c-name').value;
+        if(n) Player.name = n;
+        
+        let r = document.getElementById('c-race').value;
+        let a = document.getElementById('c-age').value;
+        Player.race = r; Player.age = a;
+
+        let s = Player.stats;
+        if(r==='human'){s.int+=2;s.str+=2;s.luck+=1;}
+        else if(r==='elf'){s.int+=4;s.dex+=2;s.con-=1;}
+        else if(r==='orc'){s.str+=5;s.con+=2;s.int-=2;}
+        else if(r==='goblin'){s.luck+=5;s.str-=2;s.con-=2;}
+
+        if(a==='young'){s.dex+=3;s.str-=1;}
+        else if(a==='adult'){s.str+=2;s.con+=2;}
+        else if(a==='elder'){s.int+=5;s.con-=3;s.luck+=2;}
+        if(s.con<1) s.con=1;
+
+        this.enterGame();
+    },
+    enterGame: function() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('create-screen').style.display = 'none';
+        document.getElementById('game-app').classList.add('active');
+        document.getElementById('auto-sell-select').value = Player.autoSell;
+        UI.renderZoneSelect();
+        UI.updateAll();
+        UI.highlightSpeedBtn(CONFIG.tickRate);
+        Game.startAuto();
+    }
+};
+
+const Game = {
+    startAuto: function() {
+        isAuto = true;
+        document.getElementById('btn-pause').innerText = "暫停";
+        if(autoTimer) clearInterval(autoTimer);
+        autoTimer = setInterval(this.loop, CONFIG.tickRate);
+    },
+    stopAuto: function() {
+        isAuto = false;
+        document.getElementById('btn-pause').innerText = "繼續";
+        if(autoTimer) clearInterval(autoTimer);
+    },
+    toggleAuto: function() { isAuto ? this.stopAuto() : this.startAuto(); },
+    setSpeed: function(ms) {
+        CONFIG.tickRate = ms;
+        UI.highlightSpeedBtn(ms);
+        if(isAuto) Game.startAuto();
+    },
+
+    loop: function() {
+        Game.explore();
+        UI.updateAll();
+        if(Math.random() < 0.05) Game.saveData();
+    },
+
+    explore: function() {
+        let zone = CONFIG.zones[Player.curZone];
+        if(Player.lv < zone.req) { UI.log(`等級不足！`, "c-sys"); Game.stopAuto(); return; }
+
+        let pStats = Game.getPower();
+        Player.hp = pStats.maxHp; // 全回復
+        
+        let isGod = zone.canSpawnGod && Math.random() < CONFIG.godChance;
+        let enemy = Game.genEnemy(zone, isGod);
+        
+        let logs = [`遭遇 <strong class="${isGod?'c-god':''}">${enemy.name}</strong>`];
+        let won = Game.resolveCombat(pStats, enemy, isGod, logs);
+        
+        UI.log(logs.join("<br>"));
+        Game.finishBattle(won, zone, enemy, isGod);
+    },
+
+    resolveCombat: function(pStats, enemy, isGod, logs) {
+        let maxTurns = isGod ? 20 : 40;
+        let pRes = { mp: pStats.maxMp, sp: pStats.maxSp };
+        let eRes = { mp: enemy.maxMp, sp: enemy.maxSp };
+        let costSpell = Math.max(2, 20 - Math.floor(Player.lv*0.1));
+        let costDodge = Math.max(2, 10 - Math.floor(Player.lv*0.05));
+
+        for(let r=1; r<=maxTurns; r++) {
+            // Player
+            let pAct = (Math.random() < (pStats.int/(pStats.str+pStats.int+1))*1.5 && pRes.mp >= costSpell) ? "spell" : "atk";
+            let dmg = 0;
+            
+            if(pAct === "spell") {
+                pRes.mp -= costSpell;
+                if(Math.random() > Math.min(0.95, 0.5+pStats.int*0.02)) {}
+                else {
+                    let isCrit = Math.random() < (pStats.luck * 0.01);
+                    dmg = pStats.matk * (1+Math.random()*0.5) * (isCrit?1.5:1);
+                }
+            } else {
+                let isCrit = Math.random() < (pStats.luck * 0.01 + pStats.dex * 0.005);
+                dmg = pStats.atk * (0.9+Math.random()*0.2) * (isCrit?1.5:1);
+            }
+
+            if(dmg > 0) {
+                if(eRes.sp >= 10 && Math.random() < (enemy.stats.dex*0.02)) { eRes.sp-=10; dmg=0; }
+                else enemy.hp -= dmg;
+            }
+            if(enemy.hp <= 0) return true;
+
+            // Enemy
+            let eDmg = enemy.atk * (0.9+Math.random()*0.2);
+            if(pRes.sp >= costDodge && Math.random() < (pStats.dex*0.02)) { pRes.sp -= costDodge; }
+            else { Player.hp -= Math.max(1, Math.floor(eDmg - pStats.def)); }
+            
+            if(Player.hp <= 0) return false;
+        }
+        return false;
+    },
+
+    finishBattle: function(won, zone, enemy, isGod) {
+        if(!won) {
+            let penExp = Math.floor(zone.baseExp * 0.2);
+            Player.exp += penExp;
+            UI.log(`戰敗... 獲得 ${penExp} 經驗`, "c-danger");
+        } else {
+            let exp = zone.baseExp * (isGod ? 5 : 1);
+            let gold = zone.req * (isGod ? 10 : 3); // 金幣減少
+            Player.exp += exp; Player.gold += gold;
+            UI.log(`勝利！+${exp} EXP, +${gold} G`, "c-gold");
+            
+            // 掉落
+            let baseDrop = 0.30;
+            let luckMod = 1 + (Player.stats.luck * 0.01);
+            
+            if(isGod || Math.random() < (baseDrop * luckMod)) {
+                Game.dropLoot(zone, isGod?6:0, isGod?7:-1);
+            }
+        }
+
+        if(Player.exp >= Player.maxExp) {
+            Player.exp -= Player.maxExp; Player.lv++; Player.pts += 5; Player.hp = Game.getPower().maxHp;
+            UI.log(`升級！等級 ${Player.lv}`, "q7");
+            if(Player.lv % 20 === 0) UI.showPromo(true);
+        }
+    },
+
+    dropLoot: function(zone, minQ, maxQ) {
+        // 決定掉落類型
+        let q = minQ;
+        let lim = maxQ === -1 ? zone.maxQ : maxQ;
+        for(let i=minQ; i<lim; i++) if(Math.random() < (0.4 + Player.stats.luck * 0.005)) q++; else break;
+
+        // 賣出檢查
+        if(q <= Player.autoSell) {
+            Player.gold += (q+1)*10;
+            UI.log(`自動賣出物品`, "c-sys");
+            return;
+        }
+
+        // 決定物品
+        let type = "";
+        let isPetItem = false;
+        
+        // 寵物判定: Zone >= 2 (Index 2 is Forest)
+        // 機率 1.5% + (Zone-2)*0.5%, Max 5%
+        let petChance = 0;
+        if(Player.curZone >= 2) petChance = Math.min(0.05, 0.015 + (Player.curZone-2)*0.005);
+        
+        let rnd = Math.random();
+        
+        if(rnd < petChance) {
+            // 掉落寵物 (算一般物品，裝備在 pet 欄位)
+            type = "pet";
+        } else if (rnd < 0.15) {
+            // 掉落寵物裝備 (算特殊物品，進寵物背包)
+            type = "pet_acc";
+            isPetItem = true;
+        } else {
+            // 一般裝備
+            type = ["head","body","feet","weapon","acc"][Math.floor(Math.random()*5)];
+        }
+
+        if(type === "pet" && q > 4) q = 4; // 寵物最高工藝
+        if(type === "pet_acc" && q > 4) q = 4;
+
+        let nBase = "";
+        if(type === "pet") nBase = DB.names.pet[Math.floor(Math.random()*DB.names.pet.length)];
+        else if(type === "pet_acc") nBase = DB.names.pet_acc[Math.floor(Math.random()*DB.names.pet_acc.length)];
+        else nBase = DB.names[type==="weapon"?"weapon":(type==="acc"?"acc":"armor")][Math.floor(Math.random()*5)];
+
+        let bonus = (q >= 4) ? CONFIG.bonusEffects[Math.floor(Math.random()*CONFIG.bonusEffects.length)] : "";
+        let item = { 
+            id:Date.now()+Math.random(), 
+            name: CONFIG.qualities[q].name+"的"+nBase, 
+            type:type, q:q, val:(q+1)*20, 
+            stats:Game.genStats(q), bonus: bonus
+        };
+
+        // 放入背包
+        if(isPetItem) {
+            if(Player.petBag.length >= Player.petBagLimit) return UI.log("寵物裝備背包已滿", "c-danger");
+            Player.petBag.push(item);
+        } else {
+            if(Player.bag.length >= Player.bagLimit) return UI.log("背包已滿", "c-danger");
+            Player.bag.push(item);
+        }
+        UI.log(`獲得：<span class="${CONFIG.qualities[q].color}">${item.name}</span>`);
+    },
+
+    genStats: function(q) {
+        let pts = Math.floor((Player.lv*0.5+5)*CONFIG.qualities[q].val);
+        let s={str:0,int:0,dex:0,con:0,luck:0}; 
+        for(let i=0;i<pts;i++) s[['str','int','dex','con','luck'][Math.floor(Math.random()*5)]]++; 
+        return s;
+    },
+
+    /* Inventory & Equip */
+    showEquipCompare: function(idx, isPetBagItem) {
+        let item = isPetBagItem ? Player.petBag[idx] : Player.bag[idx];
+        let loc = isPetBagItem ? 'petEquip' : 'equip';
+        let tar = item.type;
+        
+        // 寵物裝備特殊處理
+        if(isPetBagItem) {
+            if(!Player.equip.pet) return alert("必須先裝備寵物，才能穿戴寵物裝備！");
+            tar = Player.petEquip.acc1 ? 'acc2' : 'acc1'; // 填空
+        }
+
+        let curItem = Player[loc][tar];
+        
+        // Render
+        let fmt = (i) => {
+            if(!i) return "無";
+            let h = `<div class="${CONFIG.qualities[i.q].color}">${i.name}</div>`;
+            h += `<div>力:${i.stats.str} 智:${i.stats.int} 敏:${i.stats.dex}</div>`;
+            h += `<div>體:${i.stats.con} 運:${i.stats.luck}</div>`;
+            if(i.bonus) h += `<div style="color:var(--gold)">${i.bonus}</div>`;
+            return h;
+        };
+        
+        document.getElementById('cmp-cur-content').innerHTML = fmt(curItem);
+        document.getElementById('cmp-new-content').innerHTML = fmt(item);
+        
+        let btn = document.getElementById('btn-confirm-equip');
+        btn.onclick = function() {
+            Game.equip(idx, isPetBagItem, tar);
+            document.getElementById('modal-compare').classList.remove('active');
+        };
+        document.getElementById('modal-compare').classList.add('active');
+    },
+
+    equip: function(idx, isPetBagItem, targetSlot) {
+        let list = isPetBagItem ? Player.petBag : Player.bag;
+        let item = list[idx];
+        let loc = isPetBagItem ? 'petEquip' : 'equip';
+        let tar = targetSlot || item.type;
+
+        // 驗證
+        if(isPetBagItem && !Player.equip.pet) return;
+        if(!isPetBagItem && item.type !== tar) return;
+
+        let cur = Player[loc][tar];
+        Player[loc][tar] = item;
+        list.splice(idx, 1);
+        if(cur) list.push(cur);
+        UI.updateAll();
+    },
+
+    unequip: function(loc, slot) {
+        let targetBag = (loc === 'petEquip') ? Player.petBag : Player.bag;
+        let limit = (loc === 'petEquip') ? Player.petBagLimit : Player.bagLimit;
+        
+        // 卸下寵物時，如果有穿寵物裝備，要先卸下寵物裝備
+        if(slot === 'pet' && (Player.petEquip.acc1 || Player.petEquip.acc2)) {
+            return alert("請先卸下寵物身上的飾品！");
+        }
+
+        if(targetBag.length >= limit) return alert("對應背包已滿");
+        
+        if(Player[loc][slot]) {
+            targetBag.push(Player[loc][slot]);
+            Player[loc][slot] = null;
+            UI.updateAll();
+        }
+    },
+    unequipPet: function(s) { 
+        if(s === 'pet') Game.unequip('equip', 'pet');
+        else Game.unequip('petEquip', s);
+    },
+
+    sell: function(idx, isPetBag) {
+        let list = isPetBag ? Player.petBag : Player.bag;
+        Player.gold += list[idx].val;
+        list.splice(idx, 1);
+        UI.updateAll();
+    },
+
+    setAutoSell: function(val) { Player.autoSell = parseInt(val); },
+    addStat: function(k) { if(Player.pts>0){Player.stats[k]++; Player.pts--; UI.updateAll();} },
+    
+    promote: function() {
+        let slots = ['head','body','feet','weapon','acc'].filter(s => Player.equip[s]);
+        if(slots.length > 0) {
+            let count = Math.min(slots.length, Math.floor(Math.random()*3)+1);
+            for(let i=0; i<count; i++) {
+                let idx = Math.floor(Math.random()*slots.length);
+                Player.equip[slots[idx]] = null; slots.splice(idx, 1);
+            }
+            Player.pts += 20; Player.rebirth++; 
+            UI.showPromo(false); UI.updateAll();
+        } else alert("無裝備可獻祭！");
+    },
+    
+    getPower: function() {
+        let s = { ...Player.stats, def: 0 };
+        Object.values(Player.equip).forEach(i => { if(i) Game.addStats(s, i.stats); });
+        // 只有裝備了寵物，寵物裝備才生效
+        if(Player.equip.pet) {
+             Object.values(Player.petEquip).forEach(i => { if(i) Game.addStats(s, i.stats); });
+        }
+        s.maxHp = 100 + (s.con * 20) + (Player.lv * 10);
+        s.maxMp = 20 + (s.int * 10) + (Player.lv * 2);
+        s.maxSp = 20 + (s.con * 5 + s.dex * 5) + (Player.lv * 2);
+        s.atk = Math.floor(s.str * 2 + s.int * 0.5);
+        s.matk = Math.floor(s.int * 2.5);
+        s.def = Math.floor(s.con * 1.0 + s.str * 0.2);
+        return s;
+    },
+    addStats: function(base, add) { base.str+=add.str||0; base.int+=add.int||0; base.dex+=add.dex||0; base.con+=add.con||0; base.luck+=add.luck||0;},
+    genEnemy: function(zone, isGod) {
+        let lv = zone.req + Math.floor(Math.random()*5);
+        let m = isGod ? 5 : 1; 
+        // 名稱池
+        let name = isGod ? `[至高神] 虛空守衛` : "遊蕩怪物";
+        if(!isGod && zone.monsters && zone.monsters.length > 0) {
+            name = zone.monsters[Math.floor(Math.random() * zone.monsters.length)];
+        }
+
+        return {
+            name: name,
+            hp: lv*100*(isGod?1:0.3), maxHp: lv*100*(isGod?1:0.3),
+            atk: lv*5*m, matk: lv*6*m, def: lv*2*m,
+            maxMp: lv*10, maxSp: lv*10,
+            stats: { str:lv*m, int:lv*m, dex:lv*m, con:lv*m, luck:lv*m }, isGod: isGod
+        };
+    },
+    changeZone: function() { Player.curZone = document.getElementById('zone-selector').value; UI.renderZoneInfo(); },
+    saveData: function() { localStorage.setItem('rpg_v9_save', JSON.stringify(Player)); },
+};
+
+const Shop = { 
+    buyBag: function() { 
+        if(Player.bagLimit >= 200) return alert("背包已達上限 200");
+        if(Player.gold>=500){ Player.gold-=500; Player.bagLimit+=5; UI.updateAll(); } else alert("金幣不足");
+    } 
+};
+
+const Bag = {
+    sort: function() {
+        let order = { "weapon":1, "head":2, "body":3, "feet":4, "acc":5, "pet":6, "pet_acc":7 };
+        let sortFn = (a, b) => {
+            if(a.q !== b.q) return b.q - a.q; // 品質高優先
+            return order[a.type] - order[b.type]; // 類型排序
+        };
+        Player.bag.sort(sortFn);
+        Player.petBag.sort(sortFn);
+        UI.updateAll();
+    }
+};
+const System = { exportSave: function() { let blob=new Blob([JSON.stringify(Player)],{type:"application/json"}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`rpg_v9_${Date.now()}.json`; a.click(); } };
+
+/* --- UI --- */
+const UI = {
+    switchTab: function(id) {
+        document.querySelectorAll('.content-area').forEach(e=>e.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
+        document.getElementById(id).classList.add('active'); event.target.classList.add('active');
+    },
+    switchBagTab: function(view) {
+        currentBagView = view;
+        document.getElementById('btn-bag-main').classList.toggle('active-btn', view==='main');
+        document.getElementById('btn-bag-pet').classList.toggle('active-btn', view==='pet');
+        this.updateAll();
+    },
+    log: function(m, c="") {
+        let b = document.getElementById('game-log');
+        b.innerHTML += `<div class="log-entry ${c}">${m}</div>`;
+        while(b.children.length > CONFIG.logLimit) b.removeChild(b.firstChild);
+        b.scrollTop = b.scrollHeight;
+    },
+    setFont: function(size) { document.body.style.setProperty('--font-size', size+'px'); },
+    highlightSpeedBtn: function(ms) {
+        ['slow','norm','fast'].forEach(id => document.getElementById('spd-'+id).style.border="1px solid #444");
+        let activeId = ms===1500?'slow':(ms===700?'fast':'norm');
+        document.getElementById('spd-'+activeId).style.border="1px solid var(--accent)";
+    },
+    updateAll: function() {
+        if(!document.getElementById('game-app').classList.contains('active')) return;
+        let p = Game.getPower();
+        
+        let roman = ["", " I", " II", " III", " IV", " V", " VI", " VII", " VIII", " IX", " X"];
+        let rTxt = (Player.race === 'human' ? "人類" : Player.race === 'elf' ? "精靈" : Player.race==='goblin'?'哥布林':'獸人') + (roman[Player.rebirth]||" "+Player.rebirth);
+        document.getElementById('hud-name').innerText = Player.name;
+        document.getElementById('hud-race').innerText = rTxt;
+        document.getElementById('hud-lv').innerText = Player.lv;
+        document.getElementById('hud-gold').innerText = Player.gold;
+        
+        let setBar = (id, val, max) => {
+            document.getElementById('bar-'+id).style.width = (val/max*100)+"%";
+            document.getElementById('txt-'+id).innerText = `${Math.floor(val)}/${max}`;
+        };
+        setBar('hp', Player.hp, p.maxHp); setBar('mp', p.maxMp, p.maxMp); setBar('sp', p.maxSp, p.maxSp); setBar('exp', Player.exp, Player.maxExp);
+        
+        document.getElementById('stat-pts').innerText = Player.pts;
+        ['str','int','dex','con','luck'].forEach(k => {
+            let base = Player.stats[k];
+            let total = p[k]; // getPower returns totals mixed
+            // Re-calc basic logic to display breakdown: Total - Base = Bonus
+            // But getPower mixes them. Simple hack:
+            document.getElementById(`val-${k}`).innerHTML = `${base} <span style="font-size:0.8em; color:#888;">(+${total-base})</span>`;
+        });
+        
+        // Equip
+        let el = document.getElementById('equip-list'); el.innerHTML="";
+        Object.keys(Player.equip).forEach(k => { 
+            if(k==='pet') return; // Render pet separately
+            let i=Player.equip[k]; 
+            let iName = i ? `<span class="${CONFIG.qualities[i.q].color}">${i.name}</span>` : "無";
+            el.innerHTML+=`<div class="equip-slot" onclick="Game.unequip('equip','${k}')"><span>${DB.slots[k]}</span>${iName}</div>`;
+        });
+        
+        // Pet Slot
+        let pet = Player.equip.pet;
+        document.getElementById('slot-pet').innerHTML = pet ? `<span class="${CONFIG.qualities[pet.q].color}">${pet.name}</span>` : "無";
+
+        let p1=Player.petEquip.acc1, p2=Player.petEquip.acc2;
+        document.getElementById('slot-pet-acc1').innerHTML = p1?`<span class="${CONFIG.qualities[p1.q].color}">${p1.name}</span>`:"無";
+        document.getElementById('slot-pet-acc2').innerHTML = p2?`<span class="${CONFIG.qualities[p2.q].color}">${p2.name}</span>`:"無";
+
+        // Bag
+        let bl = document.getElementById('inventory-list'); bl.innerHTML="";
+        let list = currentBagView === 'main' ? Player.bag : Player.petBag;
+        let limit = currentBagView === 'main' ? Player.bagLimit : Player.petBagLimit;
+        document.getElementById('bag-usage').innerText = list.length;
+        document.getElementById('bag-max').innerText = limit;
+        
+        if(list.length === 0) bl.innerHTML = `<div style="text-align:center; color:#666; padding:20px;">空無一物</div>`;
+        else list.forEach((item, i) => { 
+            bl.innerHTML += `
+            <div class="item-row">
+                <div style="cursor:pointer; flex:1;" onclick="Game.showEquipCompare(${i}, ${currentBagView==='pet'})">
+                    <span class="${CONFIG.qualities[item.q].color}">${item.name}</span>
+                    ${item.bonus ? `<span style="font-size:0.7em; color:var(--gold); display:block;">${item.bonus}</span>` : ""}
+                </div>
+                <div>
+                    <button class="small" onclick="Game.showEquipCompare(${i}, ${currentBagView==='pet'})">裝</button> 
+                    <button class="small" onclick="Game.sell(${i}, ${currentBagView==='pet'})">賣</button>
+                </div>
+            </div>`; 
+        });
+    },
+    renderZoneSelect: function() {
+        let sel = document.getElementById('zone-selector'); sel.innerHTML="";
+        CONFIG.zones.forEach((z, i) => { sel.innerHTML += `<option value="${i}" ${i==Player.curZone?'selected':''}>${z.name} (Lv.${z.req})</option>`; });
+        this.renderZoneInfo();
+    },
+    renderZoneInfo: function() { let z = CONFIG.zones[document.getElementById('zone-selector').value]; document.getElementById('zone-info').innerText = `等級: ${z.req} | 最高掉落: ${CONFIG.qualities[z.maxQ].name}`; },
+    showPromo: function(s) { document.getElementById('promo-area').style.display = s?'block':'none'; }
+};
+</script>
+</body>
+</html>
