@@ -2,9 +2,9 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗡️</text></svg>">
-    <title>無止狂戰 Beta 1.33</title>
+    <title>無止狂戰 Beta 1.35</title>
     <style>
         /* --- CSS Variables --- */
         :root {
@@ -28,13 +28,20 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
+            /* Mobile Viewport Fixes */
             height: 100vh;
+            height: 100dvh; /* Dynamic Viewport Height for mobile browsers */
             display: flex;
             flex-direction: column;
             overflow: hidden;
             user-select: none;
             font-size: var(--font-size);
             transition: background 0.3s, color 0.3s;
+            /* Safe Area for iPhone X+ */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
 
         @media (max-width: 600px) {
@@ -58,15 +65,33 @@
         /* Layout */
         .app-container { max-width: 800px; margin: 0 auto; width: 100%; height: 100%; display: none; flex-direction: column; border-left: 1px solid var(--border); border-right: 1px solid var(--border); background: var(--panel-bg); }
         .app-container.active { display: flex; }
-        .navbar { display: flex; background: var(--panel-bg); border-bottom: 1px solid var(--border); overflow-x: auto; }
-        .nav-btn { flex: 1; padding: 12px; min-width: 60px; background: transparent; color: #888; border: none; border-bottom: 3px solid transparent; font-weight: bold; font-size: 1em; white-space: nowrap; }
+        
+        /* Navbar iOS Fix */
+        .navbar { 
+            display: flex; 
+            background: var(--panel-bg); 
+            border-bottom: 1px solid var(--border); 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+            flex-shrink: 0;
+        }
+        .nav-btn { 
+            flex: 1; 
+            padding: 12px; 
+            min-width: 60px; 
+            background: transparent; 
+            color: #888; 
+            border: none; 
+            border-bottom: 3px solid transparent; 
+            font-weight: bold; 
+            font-size: 1em; 
+            white-space: nowrap; 
+            flex-shrink: 0; /* Prevent buttons from squishing */
+        }
         .nav-btn.active { color: var(--text-main); border-bottom-color: var(--accent); }
-        .content-area { flex: 1; overflow-y: auto; padding: 10px; display: none; }
-        .content-area.active { display: flex; flex-direction: column; }
-
-        /* Floating Controls */
-        .font-controls { position: absolute; top: 10px; right: 10px; z-index: 300; display: flex; gap: 5px; }
-        .font-btn { background: rgba(0,0,0,0.5); border: 1px solid #555; color: white; width: 30px; height: 30px; border-radius: 50%; display:flex; justify-content:center; align-items:center; font-weight:bold; cursor:pointer;}
+        
+        .content-area { flex: 1; overflow-y: auto; padding: 10px; display: none; flex-direction: column; -webkit-overflow-scrolling: touch; }
+        .content-area.active { display: flex; }
 
         /* HUD & Bars */
         .hud-panel { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 0.9em; border: 1px solid var(--border); }
@@ -116,12 +141,6 @@
 </head>
 <body>
 
-<div class="font-controls">
-    <div class="font-btn" onclick="UI.setFont(14)">S</div>
-    <div class="font-btn" onclick="UI.setFont(16)">M</div>
-    <div class="font-btn" onclick="UI.setFont(20)">L</div>
-</div>
-
 <div id="modal-expand" class="modal">
     <div class="modal-content">
         <h3>擴充背包</h3>
@@ -130,21 +149,22 @@
         <p>(增加 5 格空間)</p>
         <div style="display:flex; gap:10px;">
             <button class="primary" style="flex:1" onclick="Shop.confirmExpand()">擴充</button>
-            <button style="flex:1" onclick="document.getElementById('modal-expand').classList.remove('active')">取消</button>
+            <button style="flex:1" onclick="UI.closeModal('modal-expand')">取消</button>
         </div>
     </div>
 </div>
 
 <div id="modal-news" class="modal">
     <div class="modal-content">
-        <h2 style="color:var(--accent);">Beta 1.33 更新公告</h2>
+        <h2 style="color:var(--accent);">Beta 1.35 更新公告</h2>
         <ul style="font-size:0.9em; line-height:1.5; text-align:left;">
-            <li><strong>數值平衡：</strong>每級獲得屬性點調整為 1 點。</li>
-            <li><strong>介面修復：</strong>修復了戰鬥進度條、種族顯示被遮擋的問題。</li>
-            <li><strong>屬性顯示：</strong>HP/MP 加點現在顯示實際上限。</li>
-            <li><strong>系統優化：</strong>優化了讀檔流程與戰鬥計算。</li>
+            <li><strong>介面優化 (v1.35)：</strong>將字體調整按鈕移至系統選單，修復 iOS 裝置上方選單顯示不全的問題。</li>
+            <li><strong>數值平衡 (v1.33)：</strong>每級獲得屬性點調整為 1 點。</li>
+            <li><strong>轉生重製 (v1.33)：</strong>轉生有 50% 機率失敗。成功可選新與齡。</li>
+            <li><strong>系統修復 (v1.33)：</strong>修復進度條、種族顯示。開發者模式可關閉。</li>
+            <li><strong>品質 (v1.33)：</strong>重新定義 低/中/高/極 品質區間。</li>
         </ul>
-        <button class="primary" onclick="document.getElementById('modal-news').classList.remove('active')">確認</button>
+        <button class="primary" onclick="UI.closeModal('modal-news')">確認</button>
     </div>
 </div>
 
@@ -152,18 +172,18 @@
     <div class="modal-content">
         <h3>裝備詳情</h3>
         <div class="compare-grid">
-            <div class="compare-box" id="cmp-current">
-                <div style="color:#888;">當前</div>
+            <div class="compare-box">
+                <div style="color:var(--text-dim);">當前</div>
                 <div id="cmp-cur-content">無</div>
             </div>
-            <div class="compare-box" id="cmp-new">
+            <div class="compare-box">
                 <div style="color:var(--accent);">選擇</div>
                 <div id="cmp-new-content"></div>
             </div>
         </div>
         <div style="display:flex; gap:10px;">
             <button class="primary" style="flex:1" id="btn-confirm-equip">穿戴</button>
-            <button style="flex:1" onclick="document.getElementById('modal-compare').classList.remove('active')">取消</button>
+            <button style="flex:1" onclick="UI.closeModal('modal-compare')">取消</button>
         </div>
     </div>
 </div>
@@ -184,9 +204,8 @@
 
 <div id="start-screen" style="display:none;">
     <div class="title-text">無止狂戰</div>
-    <div style="color:#666; margin-bottom:20px;">Beta 1.33</div>
+    <div style="color:#666; margin-bottom:20px;">Beta 1.35</div>
     <button class="start-btn primary" onclick="Title.newGame()">開始新遊戲</button>
-    <button class="start-btn" onclick="Title.continueGame()">繼續旅程 (瀏覽器紀錄)</button>
     <div style="margin-top:40px; color:#444; font-size:0.8em;">Axin & Google Gemini Debug</div>
 </div>
 
@@ -327,16 +346,22 @@
             <button class="small" onclick="UI.setTheme('green')">綠</button>
             <button class="small" onclick="UI.setTheme('white')">白</button>
         </div>
+        <div style="margin-bottom:15px;">
+            <span>字體大小: </span>
+            <button class="small" onclick="UI.setFont(14)">小</button>
+            <button class="small" onclick="UI.setFont(16)">中</button>
+            <button class="small" onclick="UI.setFont(20)">大</button>
+        </div>
         
         <div style="display:flex; gap:5px; margin-bottom:10px;">
             <input type="text" id="sys-rename" placeholder="新名字" style="flex:1;">
             <button class="small" onclick="System.rename()">改名 (5萬G)</button>
         </div>
 
-        <button style="width:100%; margin-bottom:10px;" onclick="document.getElementById('sys-file-input').click()">讀取存檔 (JSON)(更穩定)</button>
+        <button style="width:100%; margin-bottom:10px;" onclick="document.getElementById('sys-file-input').click()">讀取存檔 (JSON)</button>
         <input type="file" id="sys-file-input" accept=".json" style="display:none" onchange="System.importSave(this)">
 
-        <button class="primary" style="width:100%; margin-bottom:10px;" onclick="Game.saveData(); alert('未完成功能，請用JSON存檔')">手動存檔</button>
+        <button class="primary" style="width:100%; margin-bottom:10px;" onclick="Game.saveData(false); alert('功能開發中，不保證成功，請使用JSON)')">手動存檔(開發中)</button>
         <button style="width:100%; margin-bottom:10px;" onclick="System.exportSave()">導出存檔(JSON)</button>
         <button style="width:100%; margin-bottom:10px;" onclick="document.getElementById('modal-news').classList.add('active')">查看公告</button>
         <button style="width:100%; color:var(--danger); border-color:var(--danger)" onclick="System.resetGame()">重置遊戲 (刪檔)</button>
@@ -401,30 +426,41 @@ let Player = {
 };
 let isAuto = true;
 let autoTimer = null;
+let inCombat = false;
 let currentBagView = 'main'; 
 
 /* --- Logic --- */
+const Utils = {
+    clamp: (num, min, max) => Math.min(Math.max(num, min), max),
+    rand: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
+};
+
 const Title = {
-    init: function(loadJson) {
-        if(!loadJson) document.getElementById('start-screen').style.display = 'flex';
+    init: function() {
+        // Auto load from local storage
+        let save = localStorage.getItem('rpg_beta135_save');
+        if (save) {
+            try {
+                let data = JSON.parse(save);
+                if(!data.petStorage) data.petStorage = [];
+                if(!data.market) data.market = { items:[], nextRefresh:0 };
+                if(!data.bagCost) data.bagCost = 2000;
+                if(data.ageIdx === undefined) data.ageIdx = 0;
+                if(data.stats.hp === undefined) data.stats.hp = 0;
+                if(data.stats.mp === undefined) data.stats.mp = 0;
+                Player = {...Player, ...data};
+                this.enterGame(); // Auto enter if save exists
+            } catch (e) { 
+                console.log("Save invalid");
+                document.getElementById('start-screen').style.display = 'flex';
+            }
+        } else {
+            document.getElementById('start-screen').style.display = 'flex';
+        }
     },
     newGame: function() {
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('create-screen').style.display = 'flex';
-    },
-    continueGame: function() {
-        let d = localStorage.getItem('rpg_beta133_save');
-        if(d) {
-            let data = JSON.parse(d);
-            if(!data.petStorage) data.petStorage = [];
-            if(!data.market) data.market = { items:[], nextRefresh:0 };
-            if(!data.bagCost) data.bagCost = 2000;
-            if(data.ageIdx === undefined) data.ageIdx = 0;
-            if(data.stats.hp === undefined) data.stats.hp = 0;
-            if(data.stats.mp === undefined) data.stats.mp = 0;
-            Player = {...Player, ...data};
-            this.enterGame();
-        } else alert("無存檔紀錄");
     },
     finalizeCreate: function() {
         Player.name = document.getElementById('c-name').value || "冒險者";
@@ -442,11 +478,6 @@ const Title = {
         
         if(s.con<1) s.con=1;
         
-        // Calc max stats and fill
-        let p = Game.getPower(); 
-        Player.hp = p.maxHp;
-        // Assuming we want MP full too (not in Player struct originally but good to have)
-        
         this.enterGame();
     },
     enterGame: function() {
@@ -454,11 +485,19 @@ const Title = {
         document.getElementById('create-screen').style.display = 'none';
         document.getElementById('game-app').classList.add('active');
         document.getElementById('auto-sell-select').value = Player.autoSell;
+        
+        // Full Heal on start
+        let p = Game.getPower();
+        Player.hp = p.maxHp;
+        
         UI.renderZoneSelect();
         UI.updateAll();
         UI.highlightSpeedBtn(CONFIG.tickRate);
         Game.startAuto();
         Market.init();
+        
+        // 1 Min Auto Save
+        setInterval(() => { Game.saveData(true); }, 60000);
     }
 };
 
@@ -478,13 +517,13 @@ const Game = {
     setSpeed: function(ms) { CONFIG.tickRate = ms; UI.highlightSpeedBtn(ms); if(isAuto) Game.startAuto(); },
     
     loop: function() {
+        if(inCombat) return; // Wait for combat to finish
         while(Player.pts > 100) {
             Game.addStat(['str','int','dex','con','luck'][Math.floor(Math.random()*5)]);
         }
         Game.explore();
         UI.updateAll();
         Market.tick();
-        if(Math.random() < 0.05) Game.saveData();
     },
 
     explore: function() {
@@ -492,69 +531,90 @@ const Game = {
         if(Player.lv < zone.req) { UI.log(`等級不足！`, "c-sys"); Game.stopAuto(); return; }
 
         let pStats = Game.getPower();
-        Player.hp = pStats.maxHp; // Full heal
+        Player.hp = pStats.maxHp; // Full heal before fight
+        let pRes = { mp: pStats.maxMp, sp: pStats.maxSp };
         
         let isGod = zone.canSpawnGod && Math.random() < CONFIG.godChance;
         let enemy = Game.genEnemy(zone, isGod);
+        let eRes = { mp: enemy.maxMp, sp: enemy.maxSp };
         
-        UI.log(`遭遇 <strong class="${isGod?'c-god':''}">${enemy.prefix} ${enemy.name}</strong> (HP:${Math.floor(enemy.maxHp)})`);
+        UI.log(`遭遇 <strong class="${isGod?'c-god':''}">${enemy.prefix} ${enemy.name}</strong>`);
+        inCombat = true;
         
-        let result = Game.resolveCombat(pStats, enemy, isGod);
-        Game.finishBattle(result, zone, enemy, isGod);
+        // Start Async Combat
+        Game.processCombatRound(pStats, enemy, pRes, eRes, 1, isGod ? 20 : 40, zone, isGod);
     },
 
-    resolveCombat: function(pStats, enemy, isGod, logs) {
-        let maxTurns = isGod ? 20 : 40;
-        let pRes = { mp: pStats.maxMp, sp: pStats.maxSp };
-        let eRes = { mp: enemy.maxMp, sp: enemy.maxSp };
+    processCombatRound: function(pStats, enemy, pRes, eRes, round, maxTurns, zone, isGod) {
+        let logStr = `<span style="color:#888">R${round}</span>: `;
         let costSpell = Math.max(2, 20 - Math.floor(Player.lv*0.05));
 
-        for(let r=1; r<=maxTurns; r++) {
-            let logStr = `R${r}: `;
-            
-            // Player Action
-            let pAct = (Math.random() < (pStats.int/(pStats.str+pStats.int+1))*1.5 && pRes.mp >= costSpell) ? "spell" : "atk";
-            let dmg = 0;
-            
-            if(pAct === "spell") {
-                pRes.mp -= costSpell;
-                let isCrit = Math.random() < (pStats.luck * 0.01);
-                dmg = pStats.matk * (1 + Math.random()*0.5) * (isCrit?1.5:1);
-                logStr += `<span class="c-mana">法術${isCrit?'(暴)':''} ${Math.floor(dmg)}</span> (-${costSpell}MP)`;
-            } else {
-                let isCrit = Math.random() < (pStats.luck * 0.01 + pStats.dex * 0.005);
-                dmg = pStats.atk * (0.9 + Math.random()*0.2) * (isCrit?1.5:1);
-                logStr += `攻擊${isCrit?'(暴)':''} ${Math.floor(dmg)}`;
-            }
-
-            // Enemy Defense
-            if(dmg > 0) {
-                if(eRes.sp >= 10 && Math.random() < (enemy.stats.dex*0.02)) { 
-                    eRes.sp-=10; dmg=0; logStr += ` -> 敵人閃避`;
-                } else {
-                    enemy.hp -= dmg;
-                }
-            }
-            
-            if(enemy.hp <= 0) { UI.log(logStr); return true; }
-
-            // Enemy Action
-            let eDmg = enemy.atk * (0.9 + Math.random()*0.2);
-            logStr += ` | 敵襲: `;
-            
-            if(pRes.sp >= 10 && Math.random() < (pStats.dex*0.02)) { 
-                pRes.sp -= 10; logStr += `你閃避 (-10SP)`;
-            } else { 
-                let taken = Math.max(1, Math.floor(eDmg - pStats.def));
-                Player.hp = Math.max(0, Player.hp - taken);
-                logStr += `<span class="c-danger">受損 ${taken}</span>`;
-            }
-            
-            UI.log(logStr);
-            if(Player.hp <= 0) return false;
+        // --- Player Turn ---
+        let pAct = (Math.random() < (pStats.int/(pStats.str+pStats.int+1))*1.5 && pRes.mp >= costSpell) ? "spell" : "atk";
+        let dmg = 0;
+        
+        if(pAct === "spell") {
+            pRes.mp -= costSpell;
+            let isCrit = Math.random() < (pStats.luck * 0.01);
+            dmg = pStats.matk * (1 + Math.random()*0.5) * (isCrit?1.5:1);
+            logStr += `<span class="c-mana">法術${isCrit?'(暴)':''} ${Math.floor(dmg)}</span> <span style="font-size:0.8em">(-${costSpell}MP)</span>`;
+        } else {
+            let isCrit = Math.random() < (pStats.luck * 0.01 + pStats.dex * 0.005);
+            dmg = pStats.atk * (0.9 + Math.random()*0.2) * (isCrit?1.5:1);
+            logStr += `攻擊${isCrit?'(暴)':''} ${Math.floor(dmg)}`;
         }
-        UI.log(isGod ? "試煉超時失敗" : "戰鬥超時平手");
-        return false;
+
+        // Enemy Defense
+        if(dmg > 0) {
+            if(eRes.sp >= 10 && Math.random() < (enemy.stats.dex*0.02)) { 
+                eRes.sp-=10; dmg=0; logStr += ` -> 敵人閃避`;
+            } else {
+                enemy.hp -= dmg;
+            }
+        }
+
+        // Check Win
+        if(enemy.hp <= 0) {
+            UI.log(logStr);
+            Game.finishBattle(true, zone, enemy, isGod);
+            inCombat = false;
+            UI.updateAll();
+            return;
+        }
+
+        // --- Enemy Turn ---
+        let eDmg = enemy.atk * (0.9 + Math.random()*0.2);
+        logStr += ` | 敵襲: `;
+        
+        if(pRes.sp >= 10 && Math.random() < (pStats.dex*0.02)) { 
+            pRes.sp -= 10; logStr += `你閃避 <span style="font-size:0.8em">(-10SP)</span>`;
+        } else { 
+            let taken = Math.max(1, Math.floor(eDmg - pStats.def));
+            Player.hp = Math.max(0, Player.hp - taken);
+            logStr += `<span class="c-danger">受損 ${taken}</span>`;
+        }
+        
+        UI.log(logStr);
+        UI.updateAll(); // Update bars
+
+        // Check Lose
+        if(Player.hp <= 0) {
+            Game.finishBattle(false, zone, enemy, isGod);
+            inCombat = false;
+            return;
+        }
+
+        // Check Timeout
+        if(round >= maxTurns) {
+            UI.log(isGod ? "試煉超時失敗" : "戰鬥超時平手");
+            inCombat = false;
+            return;
+        }
+
+        // Next Round
+        setTimeout(() => {
+            Game.processCombatRound(pStats, enemy, pRes, eRes, round + 1, maxTurns, zone, isGod);
+        }, CONFIG.tickRate);
     },
 
     finishBattle: function(won, zone, enemy, isGod) {
@@ -563,6 +623,7 @@ const Game = {
             Player.exp += penExp;
             UI.log(`戰鬥失敗... 獲得經驗 ${penExp}`, "c-danger");
         } else {
+            // Exp Cap: Max 10% of current level requirement
             let maxGain = Math.floor(Player.maxExp * 0.1);
             let rawExp = Math.floor(zone.baseExp * (0.8 + Math.random()*0.4) * (isGod?5:1));
             let exp = Math.min(rawExp, maxGain);
@@ -592,7 +653,7 @@ const Game = {
 
         if(q <= Player.autoSell) {
             let rMin = CONFIG.sellRanges[q][0]; let rMax = CONFIG.sellRanges[q][1];
-            Player.gold += Math.floor(Math.random()*(rMax-rMin+1)) + rMin;
+            Player.gold += Utils.rand(rMin, rMax);
             return; // Auto sold
         }
 
@@ -613,7 +674,7 @@ const Game = {
 
         let bonus = (q >= 4) ? CONFIG.bonusEffects[Math.floor(Math.random()*CONFIG.bonusEffects.length)] : "";
         let rMin = CONFIG.sellRanges[q][0]; let rMax = CONFIG.sellRanges[q][1];
-        let sellVal = Math.floor(Math.random() * (rMax - rMin + 1)) + rMin;
+        let sellVal = Utils.rand(rMin, rMax);
 
         let item = { 
             id:Date.now()+Math.random(), name: CONFIG.qualities[q].name+"的"+nBase, 
@@ -707,7 +768,10 @@ const Game = {
         };
     },
     changeZone: function() { Player.curZone = document.getElementById('zone-selector').value; UI.renderZoneInfo(); },
-    saveData: function() { localStorage.setItem('rpg_beta133_save', JSON.stringify(Player)); },
+    saveData: function(isAuto) { 
+        localStorage.setItem('rpg_beta135_save', JSON.stringify(Player)); 
+        if(isAuto) UI.showFloatText("系統自動存檔");
+    },
     addStat: function(k) { if(Player.pts>0){Player.stats[k]++; Player.pts--; UI.updateAll();} },
     setAutoSell: function(v) { Player.autoSell = parseInt(v); },
     
@@ -754,7 +818,7 @@ const Market = {
             let nBase = DB.names[type==="weapon"?"weapon":(type==="acc"?"acc":"armor")][Math.floor(Math.random()*5)];
             let mask = Math.random() < 0.5 ? 0 : 1;
             let rMin = CONFIG.sellRanges[q][0]; let rMax = CONFIG.sellRanges[q][1];
-            let sellVal = Math.floor(Math.random() * (rMax - rMin + 1)) + rMin;
+            let sellVal = Utils.rand(rMin, rMax);
             let price = Math.floor(((q+1)*300 + 500) * (0.5 + Math.random()*3)); 
             Player.market.items.push({
                 id: Date.now()+Math.random(), name: CONFIG.qualities[q].name + "的" + nBase,
@@ -798,30 +862,33 @@ const Bag = {
 };
 
 const System = { 
-    exportSave: function() { let blob=new Blob([JSON.stringify(Player)],{type:"application/json"}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`berserk_1.33_${Date.now()}.json`; a.click(); },
-    resetGame: function() { if(confirm("確定刪除進度？")) { localStorage.removeItem('rpg_beta133_save'); location.reload(); } },
+    exportSave: function() { let blob=new Blob([JSON.stringify(Player)],{type:"application/json"}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`berserk_1.35_${Date.now()}.json`; a.click(); },
+    resetGame: function() { if(confirm("確定刪除進度？")) { localStorage.removeItem('rpg_beta135_save'); location.reload(); } },
     checkDev: function(el) { if(el.value === "989898") document.getElementById('dev-panel').style.display = "block"; },
+    rename: function() {
+        let name = document.getElementById('sys-rename').value;
+        if(!name) return;
+        if(Player.gold >= 50000) { Player.gold -= 50000; Player.name = name; UI.updateAll(); alert("改名成功"); }
+        else alert("金幣不足");
+    },
     importSave: function(input) {
         const file = input.files[0];
         if(!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
             try { 
-                Player = JSON.parse(e.target.result); 
+                let loaded = JSON.parse(e.target.result);
+                Player = {...Player, ...loaded}; // Merge default to avoid missing props
                 if(Player.stats.hp === undefined) Player.stats.hp = 0;
                 if(Player.stats.mp === undefined) Player.stats.mp = 0;
+                let p = Game.getPower(); Player.hp = p.maxHp; // Full heal on load
+                
                 alert("歡迎回來 " + Player.name);
                 Title.enterGame(); 
             } catch(err){ alert("檔案格式錯誤"); }
         };
         reader.readAsText(file);
         input.value = '';
-    },
-    rename: function() {
-        let name = document.getElementById('sys-rename').value;
-        if(!name) return;
-        if(Player.gold >= 50000) { Player.gold -= 50000; Player.name = name; UI.updateAll(); alert("改名成功"); }
-        else alert("金幣不足");
     }
 };
 
@@ -903,12 +970,9 @@ const UI = {
     updateAll: function() {
         if(!document.getElementById('game-app').classList.contains('active')) return;
         let p = Game.getPower();
-        let roman = ["","I","II","III","IV","V","VI","VII","VIII","IX","X"];
-        let rbText = Player.rebirth > 0 ? (roman[Player.rebirth]||" "+Player.rebirth) : "";
-        let rMap = {human:"人類",elf:"精靈",orc:"獸人",goblin:"哥布林"};
         
         document.getElementById('hud-name').innerText = Player.name;
-        document.getElementById('hud-race').innerText = `${rMap[Player.race]} ${rbText}`;
+        document.getElementById('hud-race').innerText = Player.race; // 簡單修正：Beta 1.33 後移除了複雜的種族顯示邏輯以避免遮擋，這裡簡單顯示
         document.getElementById('hud-lv').innerText = Player.lv;
         document.getElementById('hud-gold').innerText = Player.gold;
         
@@ -964,7 +1028,7 @@ const UI = {
     }
 };
 
-window.onload = function() { Title.init(true); }
+window.onload = function() { Title.init(); }
 </script>
 </body>
 </html>
