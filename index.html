@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗡️</text></svg>">
-    <title>無止狂戰 Beta 1.5</title>
+    <title>無止狂戰 Beta 1.43</title>
     <style>
         /* --- CSS Variables --- */
         :root {
@@ -134,13 +134,12 @@
 
 <div id="modal-news" class="modal">
     <div class="modal-content">
-        <h2 style="color:var(--accent);">Beta 1.5 更新公告</h2>
+        <h2 style="color:var(--accent);">Beta 1.43 更新公告</h2>
         <ul style="font-size:0.9em; line-height:1.5; text-align:left;">
-            <li><strong>新種族 (v1.5)：</strong>龍人(高力體)、暗夜死靈(高智運)。</li>
-            <li><strong>法術優化 (v1.42)：</strong>修正戰鬥邏輯</li>
-            <li><strong>成長曲線 (v1.42)：</strong>修正HP、MP上限機制</li>
-            <li><strong>戰鬥優化：</strong>修正 MP/SP 進度條顯示，戰鬥前全回復。</li>
-            <li><strong>其他：</strong>裝備部位防呆修復，新增隱藏 Boss。</li>
+            <li><strong>裝備修復 (v1.43)：</strong>修正裝備名稱與部位不符的 Bug (頭/身/腳 現在有名稱區隔)。</li>
+            <li><strong>戰鬥優化 (v1.42)：</strong>修正 MP/SP 進度條顯示，戰鬥前全回復。</li>
+            <li><strong>隱藏 Boss：</strong>戰鬥中有極低機率隱藏BOSS</li>
+            <li><strong>寵物：</strong>新增寵物</li>
         </ul>
         <button class="primary" onclick="UI.closeModal('modal-news')">確認</button>
     </div>
@@ -182,7 +181,7 @@
 
 <div id="start-screen" style="display:none;">
     <div class="title-text">無止狂戰</div>
-    <div style="color:#666; margin-bottom:20px;">Beta 1.5</div>
+    <div style="color:#666; margin-bottom:20px;">Beta 1.43</div>
     <button class="start-btn primary" onclick="Title.newGame()">開始新遊戲</button>
     <div style="margin-top:40px; color:#444; font-size:0.8em;">Axin & Google Gemini Debug</div>
 </div>
@@ -200,8 +199,6 @@
             <option value="elf">精靈 (智敏)</option>
             <option value="orc">獸人 (力體)</option>
             <option value="goblin">哥布林 (幸運)</option>
-            <option value="dragonkin">龍人 (高力體/低敏)</option>
-            <option value="undead">暗夜死靈 (高智運/低體)</option>
         </select>
     </div>
     <div class="form-group">
@@ -224,7 +221,7 @@
         <button class="nav-btn active" onclick="UI.switchTab('tab-adv')">戰鬥</button>
         <button class="nav-btn" onclick="UI.switchTab('tab-char')">角色</button>
         <button class="nav-btn" onclick="UI.switchTab('tab-bag')">背包</button>
-        <button class="nav-btn" onclick="UI.switchTab('tab-market')">黑市多</button>
+        <button class="nav-btn" onclick="UI.switchTab('tab-market')">黑市</button>
         <button class="nav-btn" onclick="UI.switchTab('tab-sys')">系統</button>
     </nav>
 
@@ -342,8 +339,9 @@
         <button style="width:100%; margin-bottom:10px;" onclick="document.getElementById('sys-file-input').click()">讀取存檔 (JSON)</button>
         <input type="file" id="sys-file-input" accept=".json" style="display:none" onchange="System.importSave(this)">
 
-        <button class="primary" style="width:100%; margin-bottom:10px;" onclick="Game.saveData(false); alert('已手動存檔')">手動存檔(測試中)</button>
-        <button style="width:100%; margin-bottom:10px;" onclick="System.exportSave()">導出存檔(JSON)</button>
+        <button style="width:100%; margin-bottom:10px;" onclick="System.exportSave()">導出存檔 (JSON)</button>
+        <button class="primary" style="width:100%; margin-bottom:10px;" onclick="Game.saveData(false); alert('已手動存檔')">手動存檔 (測試中功能)</button>
+        
         <button style="width:100%; margin-bottom:10px;" onclick="document.getElementById('modal-news').classList.add('active')">查看公告</button>
         <button style="width:100%; color:var(--danger); border-color:var(--danger)" onclick="System.resetGame()">重置遊戲 (刪檔)</button>
 
@@ -406,7 +404,7 @@ let Player = {
     name: "冒險者", race: "human", ageIdx: 0, rebirth: 0,
     lv: 1, exp: 0, maxExp: 100, gold: 0,
     stats: { str: 5, int: 5, dex: 5, con: 5, luck: 5, hp: 0, mp: 0, hit: 0 }, 
-    pts: 5, hp: 150, mp: 50, sp: 20,
+    pts: 5, hp: 100, mp: 20, sp: 20,
     curZone: 0, bagLimit: 20, petBagLimit: 20, bagCost: 2000, autoSell: -1,
     equip: { head:null, body:null, feet:null, weapon:null, acc:null, pet:null },
     petEquip: { acc1: null, acc2: null },
@@ -427,7 +425,7 @@ const Utils = {
 
 const Title = {
     init: function() {
-        let save = localStorage.getItem('rpg_beta15_save');
+        let save = localStorage.getItem('rpg_beta143_save');
         if (save) {
             try {
                 let data = JSON.parse(save);
@@ -463,8 +461,6 @@ const Title = {
         else if(r==='elf'){s.int+=4;s.dex+=2;s.con-=1;} 
         else if(r==='orc'){s.str+=5;s.con+=2;s.int-=2;} 
         else if(r==='goblin'){s.luck+=5;s.str-=2;s.con-=2;}
-        else if(r==='dragonkin'){s.str+=4;s.con+=3;s.dex-=2;}
-        else if(r==='undead'){s.int+=4;s.luck+=3;s.con-=2;}
         
         if(s.con<1) s.con=1;
         this.enterGame();
@@ -822,7 +818,7 @@ const Game = {
     },
     changeZone: function() { Player.curZone = document.getElementById('zone-selector').value; UI.renderZoneInfo(); },
     saveData: function(isAuto) { 
-        localStorage.setItem('rpg_beta15_save', JSON.stringify(Player)); 
+        localStorage.setItem('rpg_beta143_save', JSON.stringify(Player)); 
         if(isAuto) UI.showFloatText("系統自動存檔");
     },
     addStat: function(k) { if(Player.pts>0){Player.stats[k]++; Player.pts--; UI.updateAll();} },
@@ -928,8 +924,8 @@ const Bag = {
 };
 
 const System = { 
-    exportSave: function() { let blob=new Blob([JSON.stringify(Player)],{type:"application/json"}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`berserk_1.5_${Date.now()}.json`; a.click(); },
-    resetGame: function() { if(confirm("確定刪除進度？")) { localStorage.removeItem('rpg_beta15_save'); location.reload(); } },
+    exportSave: function() { let blob=new Blob([JSON.stringify(Player)],{type:"application/json"}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`berserk_1.43_${Date.now()}.json`; a.click(); },
+    resetGame: function() { if(confirm("確定刪除進度？")) { localStorage.removeItem('rpg_beta143_save'); location.reload(); } },
     checkDev: function(el) { if(el.value === "989898") document.getElementById('dev-panel').style.display = "block"; },
     rename: function() {
         let name = document.getElementById('sys-rename').value;
@@ -1046,7 +1042,7 @@ const UI = {
         document.getElementById('hud-name').innerText = Player.name;
         let roman = ["","I","II","III","IV","V","VI","VII","VIII","IX","X"];
         let rbText = Player.rebirth > 0 ? (roman[Player.rebirth]||" "+Player.rebirth) : "";
-        let rMap = {human:"人類",elf:"精靈",orc:"獸人",goblin:"哥布林",dragonkin:"龍人",undead:"暗夜死靈"};
+        let rMap = {human:"人類",elf:"精靈",orc:"獸人",goblin:"哥布林"};
         document.getElementById('hud-race').innerText = `${rMap[Player.race]} ${rbText}`;
         
         document.getElementById('hud-lv').innerText = Player.lv;
